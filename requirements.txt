@@ -1,0 +1,8 @@
+
+streamlit
+groq
+pillow
+pytesseract
+google-generativeai
+tavily-python
+python-dotenv
