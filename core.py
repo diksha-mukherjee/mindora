@@ -1,26 +1,8 @@
-from search import search_web
-from fast_ai import ask_ai
-from PIL import Image
-import pytesseract
-import io
-
+from google import genai
+from google.genai import types
 import streamlit as st
-import google.generativeai as genai
 
-# =========================
-# OCR SETUP
-# =========================
-# (Windows only fallback — safe on Streamlit)
-import os
-
-if os.name == "nt":
-    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-
-# =========================
-# GEMINI SETUP (STREAMLIT SECRETS FIX)
-# =========================
-GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
-genai.configure(api_key=GEMINI_API_KEY)
+client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 # =========================
 # UTIL
 # =========================

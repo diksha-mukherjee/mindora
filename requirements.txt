@@ -3,6 +3,6 @@ streamlit
 groq
 pillow
 pytesseract
-google-generativeai
+google-genai
 tavily-python
 python-dotenv
