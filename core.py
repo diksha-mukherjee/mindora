@@ -1,3 +1,8 @@
+import io
+from PIL import Image
+import pytesseract
+from search import search_web
+from fast_ai import ask_ai
 from google import genai
 from google.genai import types
 import streamlit as st
