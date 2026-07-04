@@ -4,17 +4,19 @@ from core import run
 st.set_page_config(page_title="Mindora 🧠", page_icon="🧠", layout="wide")
 
 # 🚫 HIDE STREAMLIT BRANDING (THIS IS THE FIX)
+
 st.markdown(
     """
     <style>
     #MainMenu {visibility: hidden;}
     header {visibility: hidden;}
     footer {visibility: hidden;}
+    .viewerBadge_container__1QSob {display: none !important;}
+    .stAppDeployButton {display: none !important;}
     </style>
     """,
     unsafe_allow_html=True
 )
-
 st.title("🧠 Mindora")
 # =========================
 # SESSION STATE
