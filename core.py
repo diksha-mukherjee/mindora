@@ -21,7 +21,6 @@ if os.name == "nt":
 # =========================
 GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
 genai.configure(api_key=GEMINI_API_KEY)
-
 # =========================
 # UTIL
 # =========================
@@ -43,6 +42,7 @@ def compress_query(query):
 def should_search(query):
     q = query.lower().strip()
 
+    # 1. casual chat → NO search
     casual = {
         "hi", "hello", "hey", "yo", "sup", "lol",
         "bye", "thanks", "thank you",
@@ -51,9 +51,11 @@ def should_search(query):
     if q in casual:
         return False
 
+    # 2. too short → NO search
     if len(q.split()) <= 2:
         return False
 
+    # 3. math / school / SHSAT → NO search
     math_block = [
         "solve", "simplify", "evaluate", "equation",
         "algebra", "geometry", "probability",
@@ -67,11 +69,12 @@ def should_search(query):
     if any(word in q for word in math_block):
         return False
 
+    # 4. general noise filter
     if len(q) > 300:
         return False
 
+    # 5. default → allow search only for real-world questions
     return True
-
 # =========================
 # MIME TYPE
 # =========================
@@ -100,17 +103,30 @@ def read_image_ocr(image_bytes):
 # =========================
 def read_image_vision(image_bytes):
     try:
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        mime_type = get_mime_type(image_bytes)
 
-        prompt = """
-Describe ONLY what is visible in the image.
-List objects, shapes, text, and layout.
-Do NOT guess anything not visible.
-"""
+        prompt = (
+            "Describe ONLY what is visible in the image.\n"
+            "List objects, shapes, text, and layout.\n"
+            "Do NOT guess anything not visible."
+        )
 
-        response = model.generate_content([prompt, image_bytes])
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[
+                prompt,
+                types.Part.from_bytes(
+                    data=image_bytes,
+                    mime_type=mime_type
+                )
+            ]
+        )
 
-        return response.text.strip() if response and response.text else ""
+        # FIX: safer response handling
+        if response and getattr(response, "text", None):
+            return response.text.strip()
+
+        return ""
 
     except Exception as e:
         print("Vision error:", e)
@@ -125,8 +141,12 @@ def run(query, image_bytes=None):
 
     vision = ""
 
-    # IMAGE
-    if image_bytes:
+    # =========================
+    # IMAGE PIPELINE (FIXED LOGIC)
+    # =========================
+    if image_bytes is not None and len(image_bytes) > 0:
+        print("IMAGE RECEIVED ✔")
+
         vision = read_image_vision(image_bytes)
 
         if not vision:
@@ -134,8 +154,12 @@ def run(query, image_bytes=None):
 
         if vision:
             context_parts.append("IMAGE:\n" + vision[:400])
+    else:
+        print("NO IMAGE RECEIVED ❌")
 
+    # =========================
     # WEB SEARCH
+    # =========================
     if should_search(query):
         try:
             safe_query = compress_query(query)
@@ -152,14 +176,19 @@ def run(query, image_bytes=None):
         except Exception as e:
             print("Search skipped:", e)
 
-    # CONTEXT
+    # =========================
+    # BUILD CONTEXT
+    # =========================
     context = "\n\n".join(context_parts).strip()
+
     if not context:
         context = "No external context provided."
 
     context = limit(context, 3500)
 
-    # FINAL PROMPT
+    # =========================
+    # FINAL QUERY
+    # =========================
     if image_bytes:
         final_query = f"""
 User question:
@@ -168,14 +197,21 @@ User question:
 Image info:
 {vision[:400]}
 
-Answer clearly and accurately.
+Rules:
+- Use image info if present
+- Be accurate
+- Do NOT hallucinate
+
+Answer:
 """
     else:
         final_query = query
 
     final_query = limit(final_query, 2000)
 
+    # =========================
     # AI CALL
+    # =========================
     answer = ask_ai(final_query, context)
 
     return answer, sources
