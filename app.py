@@ -1,10 +1,21 @@
 import streamlit as st
 from core import run
 
-st.set_page_config(page_title="Mindora 🧠", page_icon="🧠")
+st.set_page_config(page_title="Mindora 🧠", page_icon="🧠", layout="wide")
+
+# 🚫 HIDE STREAMLIT BRANDING (THIS IS THE FIX)
+st.markdown(
+    """
+    <style>
+    #MainMenu {visibility: hidden;}
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 st.title("🧠 Mindora")
-
 # =========================
 # SESSION STATE
 # =========================
